@@ -43,18 +43,15 @@ public class Action_connect {
         try{
             URL url = new URL(newURL);
 
-            //обнуляем
+            //clear
             mErrorConnect = false;
 
-            //соединяемся
+            //connecting
             mUrlConnection = (HttpURLConnection) url.openConnection();
             mUrlConnection.setRequestMethod("GET");
-            mUrlConnection.setConnectTimeout(5000);  //5 секунд
-            mUrlConnection.setReadTimeout(5000);  //5 секунд
+            mUrlConnection.setConnectTimeout(5000);  //5 sec
+            mUrlConnection.setReadTimeout(5000);  //5 sec
             mUrlConnection.connect();
-
-            //1 step
-            System.out.print(".");
 
             try {
                 InputStream inputStream = mUrlConnection.getInputStream();
@@ -64,15 +61,11 @@ public class Action_connect {
 
                 String line;
                 while ((line = mReader.readLine()) != null) {
-                    //N steps
-                    System.out.print(".");
                     buffer.append(line);
                 }
 
                 //to string
                 mResultJson = buffer.toString();
-                //final connect step
-                System.out.print(".");
 
             }catch (IOException ex){
                 mErrorConnect = true;
@@ -81,15 +74,14 @@ public class Action_connect {
                 Main.show("Sorry! Read timeout. May be wrong currencies: " + from + " => " + to);
                 Main.show("Please, check your input values and try again!");
             }
-            //отсылаем обновление о переводе в строку
-            //publishProgress("1.2");
 
             //close reader + connection
             mReader.close();
             mUrlConnection.disconnect();
 
         } catch (MalformedURLException e) {
-            System.out.println("Sorry! URL is wrong: " + newURL);
+            mErrorConnect = true;
+            Main.show("Sorry! URL is wrong: " + newURL);
         }catch (Exception e) {
             mErrorConnect = true;
             //close connection
