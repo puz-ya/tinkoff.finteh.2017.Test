@@ -3,6 +3,18 @@ version '1.0-SNAPSHOT'
 
 apply plugin: 'java'
 
+//to build executable .jar one must get gradle-shadow-plugin :(
+//then cd "curr_dir" -> ./gradlew shadowJar -> get .jar in /build/libs/
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.4'
+    }
+}
+apply plugin: 'com.github.johnrengelman.shadow'
+
 repositories {
     mavenCentral()
 }
@@ -10,4 +22,12 @@ repositories {
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.11'
     compile "com.google.code.gson:gson:2.8.0"
+    compile 'com.intellij:annotations:+@jar'
+}
+
+//to build executable .jar one must get gradle-shadow-plugin & set manifest
+jar {
+    manifest {
+        attributes 'Main-Class': 'Main'
+    }
 }

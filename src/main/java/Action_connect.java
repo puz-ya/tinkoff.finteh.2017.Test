@@ -1,5 +1,3 @@
-import com.google.gson.*;
-
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
