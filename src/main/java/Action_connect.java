@@ -53,7 +53,7 @@ public class Action_connect implements Callable<String> {
     /** try to connect to fixer.io and try to get json data (as string)
      * throws cancellation if error
      * */
-    public void connect() throws CancellationException {
+    private void connect() throws CancellationException {
 
         String newURL;
         newURL = mMainURL.replace("111", mFrom);
@@ -74,17 +74,17 @@ public class Action_connect implements Callable<String> {
 
             try {
                 InputStream inputStream = mUrlConnection.getInputStream();
-                StringBuffer buffer = new StringBuffer();
+                StringBuilder builder = new StringBuilder();
 
                 mReader = new BufferedReader(new InputStreamReader(inputStream));
 
                 String line;
                 while ((line = mReader.readLine()) != null) {
-                    buffer.append(line);
+                    builder.append(line);
                 }
 
                 //to string
-                mResultJson = buffer.toString();
+                mResultJson = builder.toString();
 
             }catch (IOException ex_io){
                 mErrorConnect = true;

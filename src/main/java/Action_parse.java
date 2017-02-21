@@ -10,20 +10,7 @@ import java.util.concurrent.CancellationException;
 public class Action_parse implements Callable<Double>{
 
     private String mResultJson = "";
-    private boolean mErrorParse = false;  //suggest successful json parse
     private double mRate = 0.0;
-
-    public double getRate() {
-        return mRate;
-    }
-
-    public void setmResultJson(String mResultJson) {
-        this.mResultJson = mResultJson;
-    }
-
-    public boolean isError_parse() {
-        return mErrorParse;
-    }
 
     public Action_parse(){
 
@@ -36,10 +23,9 @@ public class Action_parse implements Callable<Double>{
     /** parse json string to ApiResponse object and RateObject
      * throws cancellation if error
      * */
-    public void parse() throws CancellationException{
+    private void parse() throws CancellationException{
 
         if(mResultJson.equals("")){
-            mErrorParse = true;
             Main.show("Sorry: error while parsing JSON (empty).");
 
             throw new CancellationException();
@@ -56,7 +42,6 @@ public class Action_parse implements Callable<Double>{
         RateObject rateObject = apiResponseObject.getRate();
 
         if(rateObject == null){
-            mErrorParse = true;
             Main.show("Sorry: error while parsing JSON (no rate).");
             Main.show("Please, check your input values and try again!");
 

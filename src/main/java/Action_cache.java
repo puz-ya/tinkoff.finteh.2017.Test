@@ -36,7 +36,7 @@ public class Action_cache {
         return mRate;
     }
 
-    public void setRate(double rate){
+    private void setRate(double rate){
         this.mRate = rate;
     }
 

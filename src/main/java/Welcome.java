@@ -31,7 +31,7 @@ public class Welcome {
      * @param sCurr - 3 letters currency name (ex: USD)
      * @return b - correctness of currency (3 alphabetical symbols)
      * */
-    public boolean checkCurrencies(String sCurr, int mode){
+    private boolean checkCurrencies(String sCurr, int mode){
 
         sCurr = sCurr.replaceAll("[^a-zA-Z]+","");          //delete wrong symbols
         sCurr = sCurr.trim().replaceAll("\\s{2,}", " ");    //delete spaces
@@ -54,7 +54,7 @@ public class Welcome {
 
     /** scan FROM string
      * */
-    public void scanFrom(){
+    private void scanFrom(){
         System.out.println("Enter from currency:");
         Scanner scanner = new Scanner(new InputStreamReader(System.in));
         mFromCurrency = scanner.next();
@@ -62,7 +62,7 @@ public class Welcome {
 
     /** scan TO string
      * */
-    public void scanTo(){
+    private void scanTo(){
         System.out.println("Enter to currency:");
         Scanner scanner = new Scanner(new InputStreamReader(System.in));
         mToCurrency = scanner.next();
