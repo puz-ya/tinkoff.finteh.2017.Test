@@ -1,4 +1,8 @@
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.FileWriter;
+import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
 import java.nio.file.Files;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -12,55 +16,68 @@ import java.util.List;
  */
 public class Action_cache {
 
+    /** From currency code. */
     private String mFrom;
+    /** To currency code. */
     private String mTo;
+    /** rate if any. */
     private double mRate;
 
+    /** filename. */
     private final String FILE_NAME = "puzino_currconv.txt";
+    /** file content. */
     private List<String> mStringList;
 
-    public Action_cache(String from, String to){
+    public Action_cache(final String from, final String to) {
         this.mFrom = from;
         this.mTo = to;
     }
 
+    /** getter.
+     * @return From code */
     public String getFrom() {
         return mFrom;
     }
 
+    /** getter.
+     * @return To code*/
     public String getTo() {
         return mTo;
     }
 
+    /** getter.
+     * @return rate */
     public double getRate() {
         return mRate;
     }
 
-    private void setRate(double rate){
+    /** setter.
+     * @param rate - current rate, if any */
+    private void setRate(final double rate) {
         this.mRate = rate;
     }
 
     /**
-     * if file not exists - false, getFromWeb + try to set cache again
-     * if file was created (empty) - false, getFromWeb + update
-     * if file existed - temporary true, loadDataFromFile
+     * if file not exists - false, getFromWeb + try to set cache again.
+     * if file was created (empty) - false, getFromWeb + update.
+     * if file existed - temporary true, loadDataFromFile.
      * @return b - (false) if need web update, (true) if data is ok
      * */
-    public boolean checkFile(){
+    public boolean checkFile() {
 
         File file = new File(FILE_NAME);
-        if(!file.exists()){
+        if (!file.exists()) {
 
             //creating cache file
             try {
                 if (!file.createNewFile()) {
                     //if file exists, go ahead and read it
                     return true;
-                }else {
+                } else {
                     //file was created, it's empty now, need to fill it with data, check failed
                     return false;
                 }
-            }catch (IOException ex){
+            } catch (IOException ex) {
                 Main.show("Sorry: Could not create cache file, check your write privileges.");
                 return false;
             }
@@ -68,19 +85,25 @@ public class Action_cache {
 
         //load all from file
         boolean bLoad = loadDataFromFile();
-        if(!bLoad){return false;}
+        if (!bLoad) {
+            return false;
+        }
 
         //search rate from query
         boolean bSearch = searchRate();
-        if(!bSearch){return false;}     //no, it can't be simplified for the future.
+        if (!bSearch) {
+            //no, it can't be simplified for the clearness.
+            return false;
+        }
 
         return true;
     }
 
     /**
-     * Load all from cache file
+     * Load all from cache file.
+     * @return (false) - empty result or error, (true) - successfully load data from cache
      * */
-    private boolean loadDataFromFile(){
+    private boolean loadDataFromFile() {
 
         try {
             File file = new File(FILE_NAME);
@@ -88,9 +111,10 @@ public class Action_cache {
 
         } catch (IOException e) {
             Main.show("Sorry: I/O error while loading cache.");
+            return false;
         }
 
-        if(mStringList.isEmpty()){
+        if (mStringList.isEmpty()) {
            //nothing to show, file was empty
             return false;
         }
@@ -102,17 +126,18 @@ public class Action_cache {
      * Check file for from-to pairs, check dates.
      * wrong content (corrupted) => erase
      * if outdated => rewrite
+     * @return (true) - rate was found and saved, (false) - no rate in cache for such (From-To)
      * */
-    private boolean searchRate(){
+    private boolean searchRate() {
         List<String[]> stringLists = new ArrayList<>();
 
         //mStringList not empty (checked before)
-        for(String sTmp : mStringList){
+        for (String sTmp : mStringList) {
 
             //parse each line
             String[] sArray = sTmp.split("\\|");
 
-            if(sArray.length != 3){
+            if (sArray.length != 3) {
                 //wrong data, cache was corrupted
                 eraseFile();
                 Main.show("Error: cache data was corrupted.");
@@ -125,16 +150,16 @@ public class Action_cache {
         String date;
         Double rate;
 
-        for(String[] sArray : stringLists){
+        for (String[] sArray : stringLists) {
             //two possibilities (ex: RUB-USD or USD-RUB), they are similar
             String sCurr1 = getFrom() + "-" + getTo();
             String sCurr2 = getTo() + "-" + getFrom();
 
-            if(sArray[0].equals(sCurr1)){
+            if (sArray[0].equals(sCurr1)) {
                 date = sArray[1];
-                try{
+                try {
                     rate = Double.parseDouble(sArray[2]);
-                }catch (Exception ex){
+                } catch (Exception ex) {
                     //wrong data, cache was corrupted
                     eraseFile();
                     Main.show("Error: cache data was corrupted.");
@@ -144,10 +169,10 @@ public class Action_cache {
 
                 //check cache currency date
                 LocalDate localDateToday = LocalDate.now();
-                LocalDate localDate = LocalDate.parse( date );
-                if(localDateToday.getYear() != localDate.getYear() ||
-                        localDateToday.getMonthValue() != localDate.getMonthValue() ||
-                        localDateToday.getDayOfMonth() - localDate.getDayOfMonth() > 0){
+                LocalDate localDate = LocalDate.parse(date);
+                if (localDateToday.getYear() != localDate.getYear()
+                        || localDateToday.getMonthValue() != localDate.getMonthValue()
+                        || localDateToday.getDayOfMonth() - localDate.getDayOfMonth() > 0) {
 
                     //cache is out of date, delete this object, rewrite cache, send update command
                     stringLists.remove(sArray);
@@ -161,11 +186,11 @@ public class Action_cache {
             }
 
             //reverse currency
-            if(sArray[0].equals(sCurr2)){
+            if (sArray[0].equals(sCurr2)) {
                 date = sArray[1];
                 try {
                     rate = 1.0 / Double.parseDouble(sArray[2]);
-                }catch (Exception ex){
+                } catch (Exception ex) {
                     //wrong data, cache was corrupted
                     eraseFile();
                     Main.show("Error: cache data was corrupted.");
@@ -173,10 +198,10 @@ public class Action_cache {
                 }
                 //check cache currency date
                 LocalDate localDateToday = LocalDate.now();
-                LocalDate localDate = LocalDate.parse( date );
-                if(localDateToday.getYear() != localDate.getYear() ||
-                        localDateToday.getMonthValue() != localDate.getMonthValue() ||
-                        localDateToday.getDayOfMonth() - localDate.getDayOfMonth() > 0){
+                LocalDate localDate = LocalDate.parse(date);
+                if (localDateToday.getYear() != localDate.getYear()
+                        || localDateToday.getMonthValue() != localDate.getMonthValue()
+                        || localDateToday.getDayOfMonth() - localDate.getDayOfMonth() > 0) {
 
                     //cache is out of date, delete this object, rewrite cache, send update command
                     stringLists.remove(sArray);
@@ -194,9 +219,8 @@ public class Action_cache {
         return false;
     }
 
-    /**
-     * In cause of corrupted data we can erase all data and getFromWeb new info */
-    private void eraseFile(){
+    /** In cause of corrupted data we can erase all data and getFromWeb new info. */
+    private void eraseFile() {
 
         String sEmpty = "";
 
@@ -216,15 +240,17 @@ public class Action_cache {
         }
     }
 
-    /** rewrite all cache (delete outdated line) after outdated line was found */
-    private void rewriteCache(List<String[]> list){
+    /** rewrite all cache (delete outdated line) after outdated line was found.
+     * @param list - List after parsing cache content (ex: <["USD-RUS"]["2017-02-01"]["0.1"]> )
+     * */
+    private void rewriteCache(final List<String[]> list) {
 
         try {
             File file = new File(FILE_NAME);
             FileWriter writer = new FileWriter(file.getPath(), false);
             BufferedWriter bw = new BufferedWriter(writer);
 
-            for(String[] strings : list){
+            for (String[] strings : list) {
                 String sInsert = strings[0] + "|" + strings[1] + "|" + strings[2] + "\r\n";
                 bw.write(sInsert);
             }
@@ -238,8 +264,11 @@ public class Action_cache {
         }
     }
 
-    /** Save new values from web */
-    public boolean insert(double rate){
+    /** Save new values from web to cache.
+     * @param rate - new rate for cache file
+     * @return (true) - successful insert, (false) - cache was not updated
+     * */
+    public boolean insert(final double rate) {
 
         try {
             File file = new File(FILE_NAME);

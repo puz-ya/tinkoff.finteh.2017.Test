@@ -23,7 +23,7 @@ public class ApiDeserializer implements JsonDeserializer<ApiResponseObject> {
             //JsonObject array = parser.parse(json.getAsJsonObject()).getAsJsonObject();
             JsonObject array = json.getAsJsonObject();
 
-            if(array.entrySet().size() > 0) {
+            if (array.entrySet().size() > 0) {
                 String base = gson.fromJson(array.get("base"), String.class);
                 String date = gson.fromJson(array.get("date"), String.class);
                 RateObject rateObject = gson.fromJson(array.getAsJsonObject("rates"), RateObject.class);
