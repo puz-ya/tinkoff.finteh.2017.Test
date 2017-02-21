@@ -7,6 +7,7 @@ import java.util.List;
 /**
  * Created by Puzino Yury on 20.02.2017.
  * work with text file ("cache") and store / update currencies rates
+ * cache data stored as follow: "USD-RUB|2017-02-21|0.234"
  */
 public class Action_cache {
 
@@ -15,7 +16,6 @@ public class Action_cache {
     private double mRate;
 
     private final String FILE_NAME = "puzino_currconv.txt";
-    private String[] fileContent;
     List<String> mStringList;
 
     public Action_cache(String from, String to){
@@ -77,32 +77,13 @@ public class Action_cache {
         return true;
     }
 
-    /** Load values from local file */
+    /** Load all from local file */
     public boolean loadDataFromFile(){
 
         try {
+            File file = new File(FILE_NAME);
+            mStringList = Files.readAllLines(file.toPath());
 
-            // It's even easier in Java 8
-            mStringList = Files.readAllLines(new File(FILE_NAME).toPath());
-
-            /* {{{ Code for example, but it's working too }}}
-
-            InputStream is = new FileInputStream(FILE_NAME);
-            BufferedReader buf = new BufferedReader(new InputStreamReader(is));
-
-            StringBuilder sb = new StringBuilder();
-            String line = buf.readLine();
-
-            while(line != null){
-                sb.append(line).append("\n");
-                line = buf.readLine();
-            }
-
-            String fileAsString = sb.toString();
-            System.out.println("Contents : " + fileAsString);
-
-            is.close();
-            */
         } catch (IOException e) {
             Main.show("Sorry: I/O error while loading cache.");
         }
@@ -126,6 +107,7 @@ public class Action_cache {
 
             if(sArray.length != 3){
                 //wrong data, cache was corrupted
+                eraseFile();
                 Main.show("Error: cache data was corrupted.");
                 return false;
             }
@@ -145,10 +127,12 @@ public class Action_cache {
                 try{
                     rate = Double.parseDouble(sArray[2]);
                 }catch (Exception ex){
-                    Main.show("Incorrect rate in cache");
+                    //wrong data, cache was corrupted
+                    eraseFile();
+                    Main.show("Error: cache data was corrupted.");
                     return false;
                 }
-                //rate was founded
+                //rate was found
 
                 //check cache currency date
                 LocalDate localDateToday = LocalDate.now();
@@ -173,7 +157,9 @@ public class Action_cache {
                 try {
                     rate = 1.0 / Double.parseDouble(sArray[2]);
                 }catch (Exception ex){
-                    Main.show("Incorrect rate in cache");
+                    //wrong data, cache was corrupted
+                    eraseFile();
+                    Main.show("Error: cache data was corrupted.");
                     return false;
                 }
                 //check cache currency date
@@ -196,6 +182,48 @@ public class Action_cache {
 
 
         return false;
+    }
+
+    /** in cause corrupted data we can erase all data and getFromWeb new info */
+    public void eraseFile(){
+
+        String sEmpty = "";
+
+        try {
+            File file = new File(FILE_NAME);
+            FileWriter writer = new FileWriter(file.getPath(), false);
+            BufferedWriter bw = new BufferedWriter(writer);
+
+            bw.write(sEmpty);
+            bw.close();
+
+        } catch (FileNotFoundException e) {
+            //mysterious disappearance
+        } catch (IOException e) {
+            //try next launch
+        }
+    }
+
+    /** rewrite all cache (delete outdated line) after outdated line was found */
+    public void rewriteCache(List<String[]> list){
+
+        try {
+            File file = new File(FILE_NAME);
+            FileWriter writer = new FileWriter(file.getPath(), false);
+            BufferedWriter bw = new BufferedWriter(writer);
+
+            for(String[] strings : list){
+                String sInsert = strings[0] + "|" + strings[1] + "|" + strings[2] + "\n";
+                bw.write(sInsert);
+            }
+
+            bw.close();
+
+        } catch (FileNotFoundException e) {
+            //mysterious disappearance
+        } catch (IOException e) {
+            //try next launch
+        }
     }
 
     /** Save names & descriptions to local file */
