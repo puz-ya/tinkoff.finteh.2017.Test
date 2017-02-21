@@ -1,6 +1,7 @@
 import java.io.*;
 import java.nio.file.Files;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,7 +17,7 @@ public class Action_cache {
     private double mRate;
 
     private final String FILE_NAME = "puzino_currconv.txt";
-    List<String> mStringList;
+    private List<String> mStringList;
 
     public Action_cache(String from, String to){
         this.mFrom = from;
@@ -35,15 +36,15 @@ public class Action_cache {
         return mRate;
     }
 
-    /** update rate for current pair from-to
-     * */
     public void setRate(double rate){
         this.mRate = rate;
     }
 
-    /** check file for from-to pairs, check dates.
-     * if outdated => connect to site
-     * @return b - (false) if need web update, (true) data is ok
+    /**
+     * if file not exists - false, getFromWeb + try to set cache again
+     * if file was created (empty) - false, getFromWeb + update
+     * if file existed - temporary true, loadDataFromFile
+     * @return b - (false) if need web update, (true) if data is ok
      * */
     public boolean checkFile(){
 
@@ -53,7 +54,6 @@ public class Action_cache {
             //creating cache file
             try {
                 if (!file.createNewFile()) {
-                    //Main.show("File already exists!");
                     //if file exists, go ahead and read it
                     return true;
                 }else {
@@ -72,13 +72,15 @@ public class Action_cache {
 
         //search rate from query
         boolean bSearch = searchRate();
-        if(!bSearch){return false;}
+        if(!bSearch){return false;}     //no, it can't be simplified for the future.
 
         return true;
     }
 
-    /** Load all from local file */
-    public boolean loadDataFromFile(){
+    /**
+     * Load all from cache file
+     * */
+    private boolean loadDataFromFile(){
 
         try {
             File file = new File(FILE_NAME);
@@ -96,7 +98,12 @@ public class Action_cache {
         return true;
     }
 
-    public boolean searchRate(){
+    /**
+     * Check file for from-to pairs, check dates.
+     * wrong content (corrupted) => erase
+     * if outdated => rewrite
+     * */
+    private boolean searchRate(){
         List<String[]> stringLists = new ArrayList<>();
 
         //mStringList not empty (checked before)
@@ -119,6 +126,7 @@ public class Action_cache {
         Double rate;
 
         for(String[] sArray : stringLists){
+            //two possibilities (ex: RUB-USD or USD-RUB), they are similar
             String sCurr1 = getFrom() + "-" + getTo();
             String sCurr2 = getTo() + "-" + getFrom();
 
@@ -140,6 +148,7 @@ public class Action_cache {
                 if(localDateToday.getYear() != localDate.getYear() ||
                         localDateToday.getMonthValue() != localDate.getMonthValue() ||
                         localDateToday.getDayOfMonth() - localDate.getDayOfMonth() > 0){
+
                     //cache is out of date, delete this object, rewrite cache, send update command
                     stringLists.remove(sArray);
                     rewriteCache(stringLists);
@@ -147,7 +156,7 @@ public class Action_cache {
                 }
 
                 //everything is ok, cache is up-to-date
-                setRate(rate);
+                this.setRate(rate);
                 return true;
             }
 
@@ -168,6 +177,7 @@ public class Action_cache {
                 if(localDateToday.getYear() != localDate.getYear() ||
                         localDateToday.getMonthValue() != localDate.getMonthValue() ||
                         localDateToday.getDayOfMonth() - localDate.getDayOfMonth() > 0){
+
                     //cache is out of date, delete this object, rewrite cache, send update command
                     stringLists.remove(sArray);
                     rewriteCache(stringLists);
@@ -175,17 +185,18 @@ public class Action_cache {
                 }
 
                 //everything is ok, cache is up-to-date
-                setRate(rate);
+                this.setRate(rate);
                 return true;
             }
         }
 
-
+        //no such data in cache
         return false;
     }
 
-    /** in cause corrupted data we can erase all data and getFromWeb new info */
-    public void eraseFile(){
+    /**
+     * In cause of corrupted data we can erase all data and getFromWeb new info */
+    private void eraseFile(){
 
         String sEmpty = "";
 
@@ -199,13 +210,14 @@ public class Action_cache {
 
         } catch (FileNotFoundException e) {
             //mysterious disappearance
+            //no message here
         } catch (IOException e) {
             //try next launch
         }
     }
 
     /** rewrite all cache (delete outdated line) after outdated line was found */
-    public void rewriteCache(List<String[]> list){
+    private void rewriteCache(List<String[]> list){
 
         try {
             File file = new File(FILE_NAME);
@@ -213,7 +225,7 @@ public class Action_cache {
             BufferedWriter bw = new BufferedWriter(writer);
 
             for(String[] strings : list){
-                String sInsert = strings[0] + "|" + strings[1] + "|" + strings[2] + "\n";
+                String sInsert = strings[0] + "|" + strings[1] + "|" + strings[2] + "\r\n";
                 bw.write(sInsert);
             }
 
@@ -226,74 +238,36 @@ public class Action_cache {
         }
     }
 
-    /** Save names & descriptions to local file */
-    /*
-    boolean SaveDataToFile(String from, String to, String date, Double rate){
+    /** Save new values from web */
+    public boolean insert(double rate){
 
-        name = name.replace("\n", " ");
-
-        // split into 2 parts - name & meaning
-        int limit = name.indexOf("(");
-        if(limit == -1){	//Without a meaning - Orcs, Tieflings...
-            limit = name.length();
-        }
-        String newname = name.substring(0, limit);
-        String meaning = name.substring(limit, name.length());
-
-        //Name, Meaning, Race, Gender
-        String input_string = "<b>"+newname+"</b><br />"+meaning+"<br />"+race+", "+gender+".";
-
-        //Data save process
         try {
-            FileOutputStream outputStream = ctx.openFileOutput(FILE_NAME, Context.MODE_APPEND);
-            DataOutputStream out = new DataOutputStream(outputStream);
+            File file = new File(FILE_NAME);
+            FileWriter writer = new FileWriter(file.getPath(), true);   //APPEND
+            BufferedWriter bw = new BufferedWriter(writer);
 
-            //In pro-version
-            out.writeUTF(input_string);
-            out.flush();
-            out.close();
+            //get current date
+            LocalDate localDateToday = LocalDate.now();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            String localDateString = localDateToday.format(formatter);
+
+            //result string to cache
+            String sInsert = getFrom() + "-" + getTo() + "|" + localDateString + "|" + String.valueOf(rate) + "\r\n";
+            bw.write(sInsert);
+
+            bw.close();
+
+        } catch (FileNotFoundException e) {
+            //mysterious disappearance
+            return false;
 
         } catch (IOException e) {
-            Log.i("Data Input", "I/O Error SaveToFile");
+            //try next launch
             return false;
         }
 
         return true;
 
     }
-    */
 
-    /** Delete value with Number "num" */
-    /*
-    void DeleteValue(int num){
-
-        String[] tmp = loadDataFromFile();
-
-        if (num > tmp.length) return;
-
-        FileOutputStream outputStream;
-
-        try {
-            //Rewrite file
-            outputStream = openFileOutput(FILE_NAME, MODE_PRIVATE);
-            DataOutputStream out = new DataOutputStream(outputStream);
-            out.writeUTF("");
-            out.flush();
-            out.close();
-
-            outputStream = openFileOutput(FILE_NAME, MODE_APPEND);
-            out = new DataOutputStream(outputStream);
-            for (int i=0; i<tmp.length; i++){
-                if (i != num){
-                    out.writeUTF(tmp[i]+".");
-                }
-            }
-            out.flush();
-            out.close();
-
-        } catch (IOException e) {
-            Main.show("Data Input : I/O Error Delete");
-        }
-    }
-    //*/
 }

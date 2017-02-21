@@ -15,36 +15,43 @@ public class Main {
 
         //check our cache file (or create new one)
         Action_cache action_cache = new Action_cache(welcome.getmFromCurrency(),welcome.getmToCurrency());
-
-        //if file not exist - false, getFromWeb + try to set cache again
-        //if file was created - false, getFromWeb + update
-        //if file existed - true, loadDataFromFile
-
         boolean bIsNew = action_cache.checkFile();
 
         if(!bIsNew) {
 
-            getFromWeb(welcome.getmFromCurrency(), welcome.getmToCurrency());
+            Double dRate = getFromWeb(welcome.getmFromCurrency(), welcome.getmToCurrency());
+            if(dRate <= 0.0){return;}   //error was shown, abort.
+
+            //update cache with new data
+            boolean bInsert = action_cache.insert(dRate);
+            if(!bInsert){
+                show("Sorry: Cache was not updated.");
+            }
+
+            //show result
+            show(welcome.getmFromCurrency() + " => " + welcome.getmToCurrency() + " : " + dRate);
 
         }else{
             //our file data (cache) is up-to-date, show it
-            show(action_cache.getFrom() + " => " + action_cache.getTo() + " : " + action_cache.getRate());
+            show("From cache: " + action_cache.getFrom() + " => " + action_cache.getTo() + " : " + action_cache.getRate());
         }
     }
 
     /**
-     *
+     * get rate data from web
+     * @param sFrom - 1st currency
+     * @param sTo - 2nd currency
      * */
-    public static void getFromWeb(String sFrom, String sTo){
+    private static double getFromWeb(String sFrom, String sTo){
 
         String sJSON;
-        double dRate;
+        double dRate = -1.0;
 
         ExecutorService executorService = Executors.newSingleThreadExecutor();
 
         Future<String> future1 = executorService.submit(
-                //init connect class object & get data from site
-                new Action_connect(sFrom, sTo)
+            //init connect class object & get data from site
+            new Action_connect(sFrom, sTo)
         );
 
         //async waiting and drawing
@@ -57,7 +64,7 @@ public class Main {
                 //some action_connect error
                 executorService.shutdown();
                 show("Sorry: error in the thread.");
-                return;
+                return dRate;   // < 0.0
             }
         }
         show("");   //new line
@@ -68,12 +75,12 @@ public class Main {
             sJSON = future1.get();
         }catch (ExecutionException|InterruptedException e) {
             executorService.shutdown();
-            return;
+            return dRate;   // < 0.0
         }
 
         Future<Double> future2 = executorService.submit(
-                //init connect class object & get data from site
-                new Action_parse(sJSON)
+            //init connect class object & get data from site
+            new Action_parse(sJSON)
         );
 
         //async waiting and drawing
@@ -86,7 +93,7 @@ public class Main {
                 //some action_connect error
                 executorService.shutdown();
                 show("Sorry: error in the thread.");
-                return;
+                return dRate;   // < 0.0
             }
         }
         show("");   //new line
@@ -96,24 +103,18 @@ public class Main {
             dRate = future2.get();
         }catch (ExecutionException|InterruptedException e) {
             executorService.shutdown();
-            return;
+            return dRate;   // < 0.0
         }
 
         //shutdown service
         executorService.shutdown();
 
-        //TODO: update cache
-        //action_cache.updateRate(dRate);
-        //action_cache.update();
-
-        //show result
-        show(sFrom + " => " + sTo + " : " + dRate);
-
+        return dRate;
     }
 
     /** too lazy to write System... many times
      * */
-    public static void show(String string){
+    static void show(String string){
         System.out.println(string);
     }
 
