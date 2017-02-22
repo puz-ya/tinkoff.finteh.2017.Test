@@ -23,6 +23,9 @@ public class Action_cache {
     /** rate if any. */
     private double mRate;
 
+    /** epsilon 1.0E-6 */
+    private final double EPS = 0.000001;
+
     /** filename. */
     private final String FILE_NAME = "puzino_currconv.txt";
     /** file content. */
@@ -159,11 +162,16 @@ public class Action_cache {
                 date = sArray[1];
                 try {
                     rate = Double.parseDouble(sArray[2]);
+                    if(rate < 0.0){
+                        return showErrorErase("Error: Rate is negative. Cache data was corrupted.");
+                    }
+                    //check if not 0.0
+                    if (rate >= 0.0 && rate < EPS){
+                        return showErrorErase("Error: Rate is too small -> less than " + EPS + ".");
+                    }
                 } catch (Exception ex) {
                     //wrong data, cache was corrupted
-                    eraseFile();
-                    Main.show("Error: cache data was corrupted.");
-                    return false;
+                    return showErrorErase("Error: cache data was corrupted.");
                 }
                 //rate was found
 
@@ -189,12 +197,18 @@ public class Action_cache {
             if (sArray[0].equals(sCurr2)) {
                 date = sArray[1];
                 try {
-                    rate = 1.0 / Double.parseDouble(sArray[2]);
+                    rate = Double.parseDouble(sArray[2]);
+                    if(rate < 0.0){
+                        return showErrorErase("Error: Rate is negative. Cache data was corrupted.");
+                    }
+                    //check if not 0.0
+                    if (rate >= 0.0 && rate < EPS){
+                        return showErrorErase("Error: Rate is too big -> more than " + 1.0/EPS + ".");
+                    }
+                    rate = 1.0 / rate;
                 } catch (Exception ex) {
                     //wrong data, cache was corrupted
-                    eraseFile();
-                    Main.show("Error: cache data was corrupted.");
-                    return false;
+                    return showErrorErase("Error: cache data was corrupted.");
                 }
                 //check cache currency date
                 LocalDate localDateToday = LocalDate.now();
@@ -238,6 +252,15 @@ public class Action_cache {
         } catch (IOException e) {
             //try next launch
         }
+    }
+
+    /** show error + eraseFile
+     * @return always false, because it is 'error' method
+     */
+    private boolean showErrorErase(String string){
+        eraseFile();
+        Main.show(string);
+        return false;
     }
 
     /** rewrite all cache (delete outdated line) after outdated line was found.

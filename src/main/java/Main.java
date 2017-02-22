@@ -32,6 +32,8 @@ public class Main {
             boolean bInsert = action_cache.insert(dRate);
             if (!bInsert) {
                 show("Sorry: Cache was not updated.");
+            } else {
+                show("Cache was updated.");
             }
 
             //show result
